@@ -1,0 +1,19 @@
+runtime: nodejs18
+service: default
+
+handlers:
+  # Serve all static files with urls ending with a file extension
+  - url: /(.*\.(gif|png|jpg|jpeg|css|js|svg|ico|html)(|\.map))$
+    static_files: \1
+    upload: (.*)(|\.map)
+    secure: always
+    # catch all handler to index.html
+  - url: /.*
+    static_files: index.html
+    upload: index.html
+    secure: always
+    # redirect http to https
+  - url: /.*
+    secure: always
+    redirect_http_response_code: 301
+    script: auto
