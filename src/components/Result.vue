@@ -1,26 +1,4 @@
 <template>
-  <!-- <div class="container mt-5">
-    
-    <div v-if="this.filteredResults.length > 0">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Quiz Pin</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(result, index) in filteredResults" :key="index">
-            <td>{{ result.name }}</td>
-            <td>{{ result.quizPin }}</td>
-            <td>{{ result.result }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-   
-  </div> -->
   <div class="container mt-5">
     <h1>Quiz Results</h1>
     <p>Quiz Pin: {{ quizPin }}</p>
@@ -57,8 +35,7 @@
                     <td style="vertical-align: middle;">
                       <img :src="imagePath(res.avatarId)" :alt="'Participant ' + res.avatarId" style="width:50px;">
                     </td>
-                    <td style="vertical-align: middle;">
-                    {{ res.name }}</td>
+                    <td style="vertical-align: middle;">{{ res.name }}</td>
                     <td style="vertical-align: middle;">{{ res.result }}</td>
                   </tr>
                 </tbody>
@@ -70,7 +47,6 @@
     </div>
   </div>
 </template>
-
 
 <script>
 import api from '../api';
@@ -99,7 +75,7 @@ export default {
   },
   data() {
     return {
-      topThree: [], // Store top five participants
+      topThree: [], // Store top three participants
       restOfParticipants: [], // Store the remaining participants
       avatars: [
         { id: 1, filename: avatar1 },
@@ -126,10 +102,36 @@ export default {
   async created() {
     try {
       const response = await api.getQuizResults(this.quizPin);
-      const results = response.data;
-      this.topThree = results.slice(0, 3);
-      this.restOfParticipants = results.slice(3);
+      console.log("API Response:", response.data); // Debugging
 
+      // Access the `results` property from the response
+      let results = response.data.results;
+
+      // Ensure results is an array
+      if (!Array.isArray(results)) {
+        console.warn("API response is not an array. Converting to array.");
+        results = []; // Default to an empty array or handle accordingly
+      }
+
+      // Validate each item in the array
+      results = results.map(item => {
+        return {
+          name: item.name || "Unknown",
+          quizPin: item.quizPin || "N/A",
+          result: item.result || 0,
+          avatarId: item.avatarId || 1, // Default avatar ID
+        };
+      });
+
+      // Handle empty results
+      if (results.length === 0) {
+        console.warn("No results found.");
+        this.topThree = [];
+        this.restOfParticipants = [];
+      } else {
+        this.topThree = results.slice(0, 3);
+        this.restOfParticipants = results.slice(3);
+      }
     } catch (error) {
       console.error("Error filtering results:", error);
     }
@@ -159,7 +161,7 @@ export default {
         return avatar10;
       else if (fileName == 11)
         return avatar11;
-        else if (fileName == 12)
+      else if (fileName == 12)
         return avatar12;
       else if (fileName == 13)
         return avatar13;
@@ -169,7 +171,7 @@ export default {
         return avatar15;
       else if (fileName == 16)
         return avatar16;
-        else if (fileName == 17)
+      else if (fileName == 17)
         return avatar17;
       else if (fileName == 18)
         return avatar18;
@@ -178,8 +180,6 @@ export default {
       if (index === 0) return '1st';
       if (index === 1) return '2nd';
       if (index === 2) return '3rd';
-      // if (index === 3) return '4th';
-      // if (index === 4) return '5th';
       return '';
     }
   },
