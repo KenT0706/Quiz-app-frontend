@@ -5,19 +5,18 @@
         <div class="indicator" :style="indicatorStyle"></div>
       </div>
       <div class="time">{{ formattedTime }}</div>
-      <div>
-        <label for="timeLimit">Set Time Limit (minutes):</label>
-        <input type="number" id="timeLimit" v-model.number="totalTimeInMinutes" @input="updateTotalTime">
-      </div>
     </div>
   </div>
 </template>
+
 <script>
 export default {
   data() {
     return {
       totalTime: 600, // Total time in seconds, initial value
       remainingTime: 600, // Initial remaining time in seconds
+      startTime: null, // Track when the question is displayed
+      elapsedTime: 0, // Track time taken for the current question
     };
   },
   computed: {
@@ -28,17 +27,8 @@ export default {
     formattedTime() {
       const minutes = Math.floor(this.remainingTime / 60);
       const seconds = this.remainingTime % 60;
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     },
-    totalTimeInMinutes: {
-      get() {
-        return this.totalTime / 60;
-      },
-      set(value) {
-        this.totalTime = value * 60;
-        this.remainingTime = this.totalTime; // Reset remaining time whenever total time is updated
-      }
-    }
   },
   methods: {
     startCountdown() {
@@ -51,25 +41,20 @@ export default {
         }
       }, 1000);
     },
-    updateTotalTime() {
-      this.startCountdown(); // Restart the countdown with the new total time
-    }
+    startQuestionTimer() {
+      this.startTime = Date.now(); // Record the start time for the current question
+    },
+    getElapsedTime() {
+      if (!this.startTime) return 0;
+      this.elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // Calculate elapsed time in seconds
+      return this.elapsedTime;
+    },
   },
   created() {
     this.startCountdown();
   },
   beforeUnmount() {
     if (this.timer) clearInterval(this.timer); // Clear the timer when component is destroyed
-  },
-  props: {
-    elapsed: {
-      type: Number,
-      required: true,
-    },
-    limit: {
-      type: Number,
-      required: true,
-    },
   },
 };
 </script>

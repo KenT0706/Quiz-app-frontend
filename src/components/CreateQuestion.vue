@@ -87,12 +87,44 @@
                 />
               </div>
               <div class="form-group mb-3">
-                <label for="correctAnswer">Correct Answer Option</label>
+                <label>Correct Answer(s)</label>
+                <div v-for="option in ['A', 'B', 'C', 'D', 'E', 'F']" :key="option">
+                  <input
+                    type="checkbox"
+                    :id="'correctAnswer' + option"
+                    :value="option"
+                    v-model="question.correctAnswer"
+                  />
+                  <label :for="'correctAnswer' + option">Option {{ option }}</label>
+                </div>
+              </div>
+              <div class="form-group mb-3">
+                <label for="scorePerQuestion">Score per Question</label>
                 <input
-                  type="text"
+                  type="number"
                   class="form-control"
-                  id="correctAnswer"
-                  v-model="question.correctAnswer"
+                  id="scorePerQuestion"
+                  v-model.number="question.scorePerQuestion"
+                  required
+                />
+              </div>
+              <div class="form-group mb-3">
+                <label for="bonusScore">Bonus Score for Quick Answer</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="bonusScore"
+                  v-model.number="question.bonusScore"
+                  required
+                />
+              </div>
+              <div class="form-group mb-3">
+                <label for="bonusTimeLimit">Bonus Time Limit (seconds)</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="bonusTimeLimit"
+                  v-model.number="question.bonusTimeLimit"
                   required
                 />
               </div>
@@ -121,39 +153,45 @@
                     <br />
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'A' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('A'), 'text-secondary': !q.correctAnswer.includes('A'), 'me-1': true}"
                     >
                       Option A: {{ q.optionA }}
                     </div>
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'B' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('B'), 'text-secondary': !q.correctAnswer.includes('B'), 'me-1': true}"
                     >
                       Option B: {{ q.optionB }}
                     </div>
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'C' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('C'), 'text-secondary': !q.correctAnswer.includes('C'), 'me-1': true}"
                     >
                       Option C: {{ q.optionC }}
                     </div>
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'D' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('D'), 'text-secondary': !q.correctAnswer.includes('D'), 'me-1': true}"
                     >
                       Option D: {{ q.optionD }}
                     </div>
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'E' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('E'), 'text-secondary': !q.correctAnswer.includes('E'), 'me-1': true}"
                     >
                       Option E: {{ q.optionE }}
                     </div>
                     <div
                       style="font-size: 12px"
-                      :class="`text-${q.correctAnswer == 'F' ? 'success fw-bold' : 'secondary'} me-1`"
+                      :class="{'text-success fw-bold': q.correctAnswer.includes('F'), 'text-secondary': !q.correctAnswer.includes('F'), 'me-1': true}"
                     >
                       Option F: {{ q.optionF }}
+                    </div>
+                    <div style="font-size: 12px">
+                      Score per Question: {{ q.scorePerQuestion }}
+                    </div>
+                    <div style="font-size: 12px">
+                      Bonus Score: {{ q.bonusScore }}
                     </div>
                   </div>
                   <div class="btn-group">
@@ -191,10 +229,10 @@
                 <tr v-for="r in results">
                   <td>
                     <img
-                      width="50"
-                      :src="`${avatars[r.avatarId - 1]}`"
-                      alt=""
-                    />
+  width="50"
+  :src="avatars[r.avatarId - 1]"
+  alt=""
+/>
                   </td>
                   <td>{{ r.name }}</td>
                   <td>{{ r.result }}</td>
@@ -246,8 +284,10 @@ export default {
         optionD: "",
         optionE: "",
         optionF: "",
-        correctAnswer: "",
+        correctAnswer: [], // Now an array
         timeLimit: 0,
+        scorePerQuestion: 5, // Default score per question
+        bonusScore: 5, // Default bonus score
       },
       addedQuestions: [],
       results: [],
@@ -289,19 +329,24 @@ export default {
     async addOrEditQuestion() {
       if (this.validateQuestion(this.question)) {
         try {
+          // Convert correctAnswer to an array
+          const payload = {
+            ...this.question,
+            correctAnswer: this.question.correctAnswer.map(answer => answer.toUpperCase()),
+            scorePerQuestion: this.question.scorePerQuestion,
+            bonusScore: this.question.bonusScore,
+            bonusTimeLimit: this.question.bonusTimeLimit,
+          };
+
           if (this.editIndex === -1) {
-            const response = await api.createQuestion(
-              this.quizId,
-              this.question
-            );
-            console.log(response);
+            const response = await api.createQuestion(this.quizId, payload);
             this.addedQuestions.push(response.data);
           } else {
             const questionId = this.addedQuestions[this.editIndex]._id;
             const response = await api.putQuestion(
               this.quizId,
               questionId,
-              this.question
+              payload
             );
             this.addedQuestions[this.editIndex] = response.data;
             this.editIndex = -1;
@@ -354,19 +399,22 @@ export default {
         return false;
       }
 
-      if (!question.correctAnswer) {
-        alert("Please specify the correct answer option.");
+      if (!question.correctAnswer.length) {
+        alert("Please select at least one correct answer.");
         return false;
       }
 
-      if (
-        !["A", "B", "C", "D", "E", "F"].includes(
-          question.correctAnswer.toUpperCase()
-        )
-      ) {
-        alert("The correct answer option must be A, B, C, D, E, or F.");
+      // Check that all selected answers are valid options
+      const validOptions = ["A", "B", "C", "D", "E", "F"];
+      const invalidAnswers = question.correctAnswer.filter(
+        (answer) => !validOptions.includes(answer.toUpperCase())
+      );
+
+      if (invalidAnswers.length) {
+        alert("Invalid correct answer(s) selected.");
         return false;
       }
+
       return true;
     },
     resetQuestion() {
@@ -378,20 +426,24 @@ export default {
         optionD: "",
         optionE: "",
         optionF: "",
-        correctAnswer: "",
+        correctAnswer: [],
         timeLimit: 0,
+        scorePerQuestion: 5,
+        bonusScore: 5,
+        bonusTimeLimit: 25,
       };
       this.editIndex = -1;
     },
     async fetchAddedQuestions() {
-      try {
-        const response = await api.getQuestions(this.quizId);
-        this.addedQuestions = response.data.questions;
-        this.results = response.data.results;
-      } catch (error) {
-        console.error("Error fetching added questions:", error);
-      }
-    },
+  try {
+    const response = await api.getQuestions(this.quizId);
+    console.log("Fetched questions:", response.data.questions); // Check if scores exist
+    this.addedQuestions = response.data.questions;
+    this.results = response.data.results;
+  } catch (error) {
+    console.error("Error fetching added questions:", error);
+  }
+},
   },
   created() {
     this.fetchAddedQuestions();

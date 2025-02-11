@@ -1,37 +1,96 @@
 <template>
-  <div class="container mt-5 bg-gradient-to-br from-blue-200 via-blue-300 to-blue-500">
-    <div class="row">
-      <div class="col-md-6 offset-md-3">
-        <h1 class="mb-4 smaller-title">HR Training Consultancy<br>Trainer / Consultant - Serene Yap</h1>
-        <!-- Avatar Selection -->
-        <div class="form-group mb-3">
-          <label for="" class="form-label">Select your avatar</label>
-          <div class="avatar-selection">
-            <div v-for="avatar in avatars" :key="avatar.id" @click="selectAvatar(avatar.id)"
-              :class="{ selected: selectedAvatar === avatar.id }">
-              <img :src="requireAvatar(avatar.filename)" alt="Avatar">
+ <div class="min-vh-100 d-flex align-items-center" style="background-color: #EBF3F6;">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+          <div class="card border-0 shadow-lg rounded-3 overflow-hidden">
+            <div class="card-header bg-primary text-white py-4">
+              <h1 class="h2 mb-0 text-center font-weight-bold">
+                <span class="d-block mb-2">HR Training Consultancy</span>
+                <span class="h4 font-weight-normal">Trainer / Consultant - Serene Yap</span>
+              </h1>
             </div>
-          </div>
-          <span class="text-danger">{{ errors.selectedAvatar }}</span>
-        </div>
-        <div class="form-group mb-3">
-          <label for="" class="form-label">Quiz Pin</label>
-          <input type="text" :class="`form-control ${errors.enteredQuizPin != null ? 'is-invalid' : ''}`"
-          placeholder="Enter Quiz Pin" v-model="enteredQuizPin">
-          <span class="text-danger">{{ errors.enteredQuizPin }}</span>
-        </div>
-        <div class="form-group mb-3">
-          <label for="" class="form-label">Name</label>
-          <input type="text" :class="`form-control ${errors.enteredQuizTakerName != null ? 'is-invalid' : ''}`"
-          placeholder="Enter Name" v-model="enteredQuizTakerName">
-          <span class="text-danger">{{ errors.enteredQuizTakerName }}</span>
-        </div>
-        <div class="input-group-append">
-          <button class="btn btn-primary" @click="startQuiz">Start Quiz</button>
-          <div style="float:right">
-            Want to create Quiz?
-            <router-link v-if="!loggedIn" to="register">Register</router-link>
-            <router-link v-else to="create-quiz">Create</router-link>
+            
+            <div class="card-body px-5 py-4">
+              <!-- Avatar Selection -->
+              <div class="mb-4">
+                <h3 class="h5 mb-3 text-secondary">Choose Your Avatar</h3>
+                <div class="avatar-grid">
+                  <div 
+                    v-for="avatar in avatars" 
+                    :key="avatar.id" 
+                    @click="selectAvatar(avatar.id)"
+                    class="avatar-item"
+                    :class="{ 'avatar-selected': selectedAvatar === avatar.id }"
+                  >
+                    <img 
+                      :src="requireAvatar(avatar.filename)" 
+                      alt="Avatar"
+                      class="avatar-image"
+                    >
+                  </div>
+                </div>
+                <div v-if="errors.selectedAvatar" class="text-danger small mt-2">
+                  <i class="fas fa-exclamation-circle me-2"></i>{{ errors.selectedAvatar }}
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label text-secondary fw-bold">Quiz Pin</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-key text-primary"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    :class="{ 'is-invalid': errors.enteredQuizPin }"
+                    placeholder="Enter Quiz Pin"
+                    v-model="enteredQuizPin"
+                  >
+                </div>
+                <div v-if="errors.enteredQuizPin" class="text-danger small mt-2">
+                  <i class="fas fa-exclamation-circle me-2"></i>{{ errors.enteredQuizPin }}
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label text-secondary fw-bold">Your Name</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-user text-primary"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    :class="{ 'is-invalid': errors.enteredQuizTakerName }"
+                    placeholder="Enter Your Name"
+                    v-model="enteredQuizTakerName"
+                  >
+                </div>
+                <div v-if="errors.enteredQuizTakerName" class="text-danger small mt-2">
+                  <i class="fas fa-exclamation-circle me-2"></i>{{ errors.enteredQuizTakerName }}
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mt-5">
+                <div class="text-muted small">
+                  Want to create a quiz? 
+                  <router-link 
+                    :to="loggedIn ? 'create-quiz' : 'register'" 
+                    class="text-decoration-none text-primary fw-bold"
+                  >
+                    {{ loggedIn ? 'Create Now' : 'Register' }}
+                  </router-link>
+                </div>
+                <button 
+                  class="btn btn-primary btn-lg px-4 rounded-pill fw-bold"
+                  @click="startQuiz"
+                >
+                  <i class="fas fa-play me-2"></i>Start Quiz
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -169,24 +228,62 @@ export default {
 </script>
 
 <style scoped>
-.smaller-title {
-  font-size: 1.5rem; /* Adjust the size as needed */
+.card {
+  transition: transform 0.3s ease;
 }
-.avatar-selection {
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.avatar-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 12px;
+}
+
+.avatar-item {
   cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
 }
 
-.avatar-selection img {
-  width: 100px;
-  height: 150px;
-  border: 2px solid transparent;
+.avatar-item:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.avatar-selection .selected img {
-  border-color: #007bff;
-  /* Highlight the selected avatar */
+.avatar-selected {
+  border-color: #4e73ff !important;
+  box-shadow: 0 4px 15px rgba(78, 115, 255, 0.25);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+}
+
+.form-control {
+  border-radius: 8px !important;
+  border: 2px solid #e0e0e0;
+}
+
+.form-control:focus {
+  border-color: #4e73ff;
+  box-shadow: 0 0 0 3px rgba(78, 115, 255, 0.1);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4e73ff 0%, #3a56cc 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(78, 115, 255, 0.4);
 }
 </style>

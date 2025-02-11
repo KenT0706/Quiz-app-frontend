@@ -28,14 +28,14 @@
             </li>
           </ul>
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0" v-else>
-            <li class="nav-item">
-              <RouterLink to="/register">
-                <button type="button" class="nav-link">Register</button>
+            <li class="nav-item me-3">
+              <RouterLink to="/register" class="btn btn-outline-light rounded-pill px-4">
+                <i class="fas fa-user-plus me-2"></i>Register
               </RouterLink>
             </li>
             <li class="nav-item">
-              <RouterLink to="/login">
-                <button type="button" class="nav-link">Login</button>
+              <RouterLink to="/login" class="btn btn-outline-light rounded-pill px-4">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
               </RouterLink>
             </li>
           </ul>

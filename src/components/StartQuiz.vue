@@ -88,7 +88,9 @@ export default {
       timerInterval: null, // Interval for the timer,
       disableSubmitButton: false,
       showLeaderBoardButton: false,
-      quickAnswer: []
+      quickAnswer: [],
+      answerTimes: [], // Array to store time taken for each question
+      startTime: null, // Start time for the current question
     };
   },
   created() {
@@ -121,6 +123,8 @@ export default {
           this.totalTime = this.questions[0].timeLimit;
           // Start the timer
           this.startTimer();
+          // Record the start time for the first question
+          this.startTime = Date.now();
         })
         .catch(error => {
           console.error("Error fetching questions:", error);
@@ -151,6 +155,10 @@ export default {
     nextQuestion() {
       // Check if an option is selected or the time is up
       if (this.selectedAnswers[this.currentQuestionIndex] || this.timer === 0) {
+        // Calculate the time taken for the current question
+        const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // Convert to seconds
+        this.answerTimes[this.currentQuestionIndex] = elapsedTime;
+
         if (this.currentQuestionIndex < this.questions.length - 1) {
           if (this.totalTime / 2 < this.timer) {
             this.quickAnswer.push(true);
@@ -160,39 +168,48 @@ export default {
           this.timerInterval = null;
           // Set the timer with the time limit of the current question
           this.timer = this.questions[this.currentQuestionIndex].timeLimit;
+          this.totalTime = this.questions[this.currentQuestionIndex].timeLimit;
           // Start the timer for the current question
           this.startTimer();
+          // Record the start time for the next question
+          this.startTime = Date.now();
         }
       }
     },
     submitQuiz() {
-      const answers = this.selectedAnswers;
-      const answerSpeed = this.quickAnswer;
-      const quizPin = this.quizPin;
-      this.timer = -1;
-      this.timerInterval = null;
-      clearInterval(this.timerInterval);
-      try {
-        api
-          .submitQuiz(this.quiz._id, {
-            answers,
-            quizPin,
-            answerSpeed
-          })
-          .then(response => {
-            const submitQuizResponse = response.data;
-            this.showLeaderBoardButton = true;
-            const currentScore = response.data.score;
-            this.score = currentScore;
-            this.disableSubmitButton = true;
-            const name = this.quizTakerName;
-            this.showResults = true;
-          });
-      } catch (error) {
-        console.error("Error submitting answers:", error);
-      }
-    },
+  // Calculate the time taken for the last question
+  const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // Convert to seconds
+  this.answerTimes[this.currentQuestionIndex] = elapsedTime;
+
+  const answers = this.selectedAnswers;
+  const quizPin = this.quizPin;
+  this.timer = -1;
+  this.timerInterval = null;
+  clearInterval(this.timerInterval);
+  console.log("Submitting answers:", this.selectedAnswers);
+  console.log("Submitting answerTimes:", this.answerTimes);
+  try {
+    api
+      .submitQuiz(this.quiz._id, {
+        answers,
+        quizPin,
+        answerTimes: this.answerTimes, // Send answerTimes to the backend
+      })
+      .then(response => {
+        const submitQuizResponse = response.data;
+        this.showLeaderBoardButton = true;
+        console.log("Backend response:", response.data); // Log the response
+        this.score = response.data.score;
+        this.disableSubmitButton = true;
+        const name = this.quizTakerName;
+        this.showResults = true;
+      });
+  } catch (error) {
+    console.error("Error submitting answers:", error);
+  }
+},
     goToLeaderBoard() {
+      console.log("Current score to save:", this.score); // Verify score is non-zero
       let quizPin = this.quizPin;
       let currentScore = this.score;
       let name = this.quizTakerName;
@@ -202,13 +219,7 @@ export default {
       console.log(name);
       console.log(avtId);
       try {
-        api
-          .saveQuizResult(this.quiz._id, {
-            quizPin,
-            currentScore,
-            name,
-            avtId
-          })
+        api.saveQuizResult(this.quiz._id, { quizPin, currentScore: this.score, name, avtId })
           .then(secondResponse => {
             this.$router.push({
               name: "Result",
@@ -224,109 +235,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.radio-item [type="radio"] {
-  display: none;
-}
-
-.radio-item+.radio-item {
-  margin-top: 15px;
-}
-
-.radio-item label {
-  display: block;
-  padding: 20px 60px;
-  background: #1d1d42;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  cursor: pointer;
-  color: white;
-  font-size: 18px;
-  font-weight: 400;
-  min-width: 250px;
-  white-space: normal;
-  word-break: break-word;
-  position: relative;
-  transition: 0.4s ease-in-out 0s;
-}
-
-
-.radio-item label:after,
-.radio-item label:before {
-  content: "";
-  color: white;
-  position: absolute;
-  border-radius: 50%;
-}
-
-.radio-item label:after {
-  height: 19px;
-  width: 19px;
-  border: 2px solid #524eee;
-  left: 19px;
-  top: calc(50% - 12px);
-}
-
-.radio-item label:before {
-  background: #524eee;
-  height: 20px;
-  width: 20px;
-  left: 21px;
-  top: calc(50%-5px);
-  transform: scale(5);
-  opacity: 0;
-  visibility: hidden;
-  transition: 0.4s ease-in-out 0s;
-}
-
-.radio-item [type="radio"]:checked~label {
-  border-color: #524eee;
-}
-
-.radio-item [type="radio"]:checked~label::before {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-}
-
-.countdown-timer {
-  display: flex;
-  justify-content: end;
-  align-items: center;
-}
-
-.timer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.dial {
-  width: 100px;
-  height: 100px;
-  border: 8px solid #ccc;
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  transform: rotate(270deg);
-  /* Rotate the dial to start from the top */
-  transition: transform 1s linear;
-}
-
-.indicator {
-  position: absolute;
-  width: 50%;
-  height: 2px;
-  background-color: #f00;
-  top: 50%;
-  left: 50%;
-  transform-origin: left;
-  transform: translateX(-50%);
-}
-
-.time {
-  font-size: 24px;
-  margin-top: 10px;
-}
-</style>
