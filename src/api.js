@@ -23,14 +23,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    
+    const { config } = error;
     if (error.response && error.response.status === 401) {
+      // Skip redirect for login/register routes
+      if (config.url.includes('/auth/login') || config.url.includes('/auth/register')) {
+        return Promise.reject(error);
+      }
       localStorage.clear();
       window.location.href = '/login';
-      return Promise.reject(error);
     }
-
-    // For other types of errors, just pass them along
     return Promise.reject(error);
   }
 );
