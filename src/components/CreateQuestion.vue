@@ -327,36 +327,40 @@ export default {
   },
   methods: {
     async addOrEditQuestion() {
-      if (this.validateQuestion(this.question)) {
-        try {
-          // Convert correctAnswer to an array
-          const payload = {
-            ...this.question,
-            correctAnswer: this.question.correctAnswer.map(answer => answer.toUpperCase()),
-            scorePerQuestion: this.question.scorePerQuestion,
-            bonusScore: this.question.bonusScore,
-            bonusTimeLimit: this.question.bonusTimeLimit,
-          };
+  if (this.validateQuestion(this.question)) {
+    try {
+      // Explicitly build the payload with only allowed fields
+      const payload = {
+        questionText: this.question.questionText,
+        optionA: this.question.optionA,
+        optionB: this.question.optionB,
+        optionC: this.question.optionC,
+        optionD: this.question.optionD,
+        optionE: this.question.optionE,
+        optionF: this.question.optionF,
+        // Ensure correctAnswer is an array of uppercase letters
+        correctAnswer: this.question.correctAnswer.map(answer => answer.toUpperCase()),
+        timeLimit: this.question.timeLimit,
+        scorePerQuestion: this.question.scorePerQuestion,
+        bonusScore: this.question.bonusScore,
+        bonusTimeLimit: this.question.bonusTimeLimit,
+      };
 
-          if (this.editIndex === -1) {
-            const response = await api.createQuestion(this.quizId, payload);
-            this.addedQuestions.push(response.data);
-          } else {
-            const questionId = this.addedQuestions[this.editIndex]._id;
-            const response = await api.putQuestion(
-              this.quizId,
-              questionId,
-              payload
-            );
-            this.addedQuestions[this.editIndex] = response.data;
-            this.editIndex = -1;
-          }
-          this.resetQuestion();
-        } catch (error) {
-          console.error(error);
-          alert("Error adding/editing the question. Please try again.");
-        }
+      if (this.editIndex === -1) {
+        const response = await api.createQuestion(this.quizId, payload);
+        this.addedQuestions.push(response.data);
+      } else {
+        const questionId = this.addedQuestions[this.editIndex]._id;
+        const response = await api.putQuestion(this.quizId, questionId, payload);
+        this.addedQuestions[this.editIndex] = response.data;
+        this.editIndex = -1;
       }
+      this.resetQuestion();
+    } catch (error) {
+      console.error(error);
+      alert("Error adding/editing the question. Please try again.");
+    }
+  }
     },
     async editQuestion(index) {
       this.question = { ...this.addedQuestions[index] };
