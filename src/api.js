@@ -88,4 +88,10 @@ export default {
   deleteQuiz(quiz_id) {
     return api.delete(`quiz/${quiz_id}/delete`);
   },
+  submitAnswer(answerData) {
+    return api.post('/answers/submit', answerData); // Remove /quiz from path
+  },
+  getAnswers(questionId) {
+    return api.get(`/answers/${questionId}`);
+  }
 };

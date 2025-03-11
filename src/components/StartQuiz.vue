@@ -45,18 +45,42 @@
           {{ questions[currentQuestionIndex].questionText }}
         </div>
         <div class="card-body">
-          <div class="radio-item" v-for="option in ['A', 'B', 'C', 'D', 'E', 'F']" :key="option">
-            <input type="radio" :id="'option' + option" class="form-check-input" :name="'answer_' + currentQuestionIndex" :value="option" v-model="selectedAnswers[currentQuestionIndex]">
-            <label :for="'option' + option">{{ questions[currentQuestionIndex]['option' + option] }}</label>
+          <!-- Multiple Choice Question -->
+          <div v-if="questions[currentQuestionIndex].questionType === 'multiple-choice'">
+            <div class="radio-item" v-for="option in ['A', 'B', 'C', 'D', 'E', 'F']" :key="option">
+              <input type="radio" :id="'option' + option" class="form-check-input"
+                :name="'answer_' + currentQuestionIndex" :value="option"
+                v-model="selectedAnswers[currentQuestionIndex]">
+              <label :for="'option' + option">{{ questions[currentQuestionIndex]['option' + option] }}</label>
+            </div>
+          </div>
+
+          <!-- Open-Ended Question -->
+          <div v-else>
+            <textarea class="form-control" v-model="selectedAnswers[currentQuestionIndex]"
+              placeholder="Enter your answer (max 100 words)" rows="4" maxlength="500"></textarea>
           </div>
         </div>
       </div>
-      <button class="btn btn-primary mt-3" v-if="currentQuestionIndex < questions.length - 1" @click="nextQuestion">Next</button>
-      <button class="btn btn-primary mt-3" v-if="currentQuestionIndex === questions.length - 1" @click="submitQuiz" :disabled="disableSubmitButton">Submit Quiz</button>
     </div>
-    <div v-if="showResults">
+    <!-- Next Question Button -->
+    <div v-if="currentQuestionIndex < questions.length - 1 && !showResults" class="mt-3">
+      <button @click="nextQuestion" class="btn btn-primary" :disabled="!selectedAnswers[currentQuestionIndex]">
+        Next Question
+      </button>
+    </div>
+    <!-- Submit Button -->
+    <div v-else-if="questions.length > 0 && currentQuestionIndex === questions.length - 1 && !showResults"
+      class="text-center mt-3">
+      <button @click="submitQuiz" class="btn btn-primary" :disabled="disableSubmitButton">
+        Submit Answers
+      </button>
+    </div>
+    <div v-if="showResults" class="text-center">
       <h2>Your Score: {{ score }}</h2>
-      <button class="btn btn-primary mt-3" v-if="showLeaderBoardButton" @click="goToLeaderBoard">Go to Leader Board</button>
+      <button class="btn btn-primary mt-3" v-if="showLeaderBoardButton" @click="goToLeaderBoard">
+        Go to Leader Board
+      </button>
     </div>
   </div>
 </template>
@@ -64,9 +88,6 @@
 <script>
 import axios from "axios";
 import api from "../api";
-import { useRouter } from "vue-router";
-
-const router = useRouter();
 
 export default {
   props: {
@@ -81,16 +102,17 @@ export default {
       selectedAnswers: [],
       showResults: false,
       score: 0,
-      timer: 0, // Timer in seconds,
+      timer: 0, // Timer in seconds
       totalTime: 0,
       timeElapsed: 0,
-      currentQuestionIndex: 0, // Index of the current question
-      timerInterval: null, // Interval for the timer,
+      currentQuestionIndex: 0,
+      timerInterval: null,
       disableSubmitButton: false,
       showLeaderBoardButton: false,
       quickAnswer: [],
-      answerTimes: [], // Array to store time taken for each question
-      startTime: null, // Start time for the current question
+      answerTimes: [],
+      startTime: null,
+      showSubmitButton: false
     };
   },
   created() {
@@ -104,10 +126,14 @@ export default {
     formattedTime() {
       const minutes = Math.floor(this.timer / 60);
       const seconds = this.timer % 60;
-      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
-        2,
-        "0"
-      )}`;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    },
+    canProceed() {
+      return (
+        this.selectedAnswers[this.currentQuestionIndex] !== undefined &&
+        this.selectedAnswers[this.currentQuestionIndex] !== null &&
+        this.selectedAnswers[this.currentQuestionIndex] !== ""
+      );
     }
   },
   methods: {
@@ -118,12 +144,10 @@ export default {
         .then(response => {
           this.questions = response.data.questions;
           this.quiz = response.data.quiz;
-          // Initialize the timer with the time limit of the first question
+          // Initialize timer for the first question
           this.timer = this.questions[0].timeLimit;
           this.totalTime = this.questions[0].timeLimit;
-          // Start the timer
           this.startTimer();
-          // Record the start time for the first question
           this.startTime = Date.now();
         })
         .catch(error => {
@@ -135,102 +159,78 @@ export default {
         if (this.timer > 0) {
           this.timer--;
         } else {
+          clearInterval(this.timerInterval);
           if (this.currentQuestionIndex < this.questions.length - 1) {
-            this.timerInterval = null;
             this.nextQuestion();
           } else {
-            this.timerInterval = null;
-            //  this.submitQuiz();
+            this.submitQuiz(); // Automatically submit when timer runs out
           }
-          clearInterval(this.timerInterval);
         }
-      }, 1000); // Update the timer every second
-    },
-    formatTime(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}:${remainingSeconds < 10 ? "0" : ""
-        }${remainingSeconds}`;
+      }, 1000);
     },
     nextQuestion() {
-      // Check if an option is selected or the time is up
       if (this.selectedAnswers[this.currentQuestionIndex] || this.timer === 0) {
-        // Calculate the time taken for the current question
-        const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // Convert to seconds
+        const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
         this.answerTimes[this.currentQuestionIndex] = elapsedTime;
-
         if (this.currentQuestionIndex < this.questions.length - 1) {
-          if (this.totalTime / 2 < this.timer) {
+          if (this.timer > this.totalTime / 2) {
             this.quickAnswer.push(true);
           }
-          // Move to the next question
           this.currentQuestionIndex++;
-          this.timerInterval = null;
-          // Set the timer with the time limit of the current question
+          clearInterval(this.timerInterval);
           this.timer = this.questions[this.currentQuestionIndex].timeLimit;
           this.totalTime = this.questions[this.currentQuestionIndex].timeLimit;
-          // Start the timer for the current question
           this.startTimer();
-          // Record the start time for the next question
           this.startTime = Date.now();
         }
       }
     },
-    submitQuiz() {
-  // Calculate the time taken for the last question
-  const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // Convert to seconds
-  this.answerTimes[this.currentQuestionIndex] = elapsedTime;
-
-  const answers = this.selectedAnswers;
-  const quizPin = this.quizPin;
-  this.timer = -1;
-  this.timerInterval = null;
-  clearInterval(this.timerInterval);
-  console.log("Submitting answers:", this.selectedAnswers);
-  console.log("Submitting answerTimes:", this.answerTimes);
+    async submitQuiz() {
   try {
-    api
-      .submitQuiz(this.quiz._id, {
-        answers,
-        quizPin,
-        answerTimes: this.answerTimes, // Send answerTimes to the backend
-      })
-      .then(response => {
-        const submitQuizResponse = response.data;
-        this.showLeaderBoardButton = true;
-        console.log("Backend response:", response.data); // Log the response
-        this.score = response.data.score;
-        this.disableSubmitButton = true;
-        const name = this.quizTakerName;
-        this.showResults = true;
+    const answers = this.questions.map((q, index) => ({
+      questionId: q._id,
+      answerText: this.selectedAnswers[index] || "",
+      answerTime: this.answerTimes[index] || 0
+    }));
+
+    // Submit for scoring
+    const response = await api.submitQuiz(this.quiz._id, { answers });
+
+    // Save the result
+    await api.saveQuizResult(this.quiz._id, {
+      currentScore: response.data.score,
+      name: this.quizTakerName,
+      avtId: this.avatarId
+    });
+
+     // Submit open-ended answers
+     const openEndedAnswers = answers.filter((answer, index) => 
+      this.questions[index].questionType === 'open-ended' && 
+      answer.answerText.trim()
+    );
+    
+    // Submit each open-ended answer properly
+    for (const answer of openEndedAnswers) {
+      await api.submitAnswer({
+        quizPin: Number(this.quizPin), // Ensure numeric pin
+        questionId: answer.questionId,
+        answerText: answer.answerText
+      }).catch(error => {
+        console.error('Answer submission error:', error);
       });
+    }
+
+    this.score = response.data.score;
+    this.showResults = true;
   } catch (error) {
     console.error("Error submitting answers:", error);
   }
 },
     goToLeaderBoard() {
-      console.log("Current score to save:", this.score); // Verify score is non-zero
-      let quizPin = this.quizPin;
-      let currentScore = this.score;
-      let name = this.quizTakerName;
-      let avtId = this.avatarId;
-      console.log(quizPin);
-      console.log(currentScore);
-      console.log(name);
-      console.log(avtId);
-      try {
-        api.saveQuizResult(this.quiz._id, { quizPin, currentScore: this.score, name, avtId })
-          .then(secondResponse => {
-            this.$router.push({
-              name: "Result",
-              params: {
-                quizPin: this.enteredQuizPin
-              }
-            });
-          });
-      } catch (error) {
-        console.error("Error submitting answers:", error);
-      }
+      this.$router.push({
+        name: "Result",
+        params: { quizPin: this.quizPin }
+      });
     }
   }
 };

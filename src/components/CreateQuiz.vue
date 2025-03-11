@@ -95,24 +95,39 @@ export default {
   },
   methods: {
     async addOrEditQuiz() {
-      if (this.validateQuiz(this.quiz)) {
-        try {
-          if (this.editIndex === -1) {
-            const response = await api.createQuiz(this.quiz);
-            this.addedQuizzes.push(response.data);
-          } else {
-            const quizId = this.addedQuizzes[this.editIndex]._id;
-            const response = await api.putQuiz(quizId, this.quiz);
-            this.addedQuizzes[this.editIndex] = response.data;
-            this.editIndex = -1;
+  if (this.validateQuiz(this.quiz)) {
+    try {
+      const payload = {
+        title: this.quiz.title,
+            scenario: this.quiz.scenario,
+            questionType: this.quiz.questionType,
+            timeLimit: this.quiz.timeLimit * 60, // Convert minutes to seconds
+          };
+
+          // Only add these fields for multiple-choice
+          if (this.quiz.questionType === "multiple-choice") {
+            payload.correctAnswer = this.quiz.correctAnswer;
+            payload.options = [
+              /* add your options here if needed */
+            ];
           }
-          this.resetQuiz();
-        } catch (error) {
-          console.error(error);
-          alert("Error adding/editing the quiz. Please try again.");
-        }
+
+      if (this.editIndex === -1) {
+        const response = await api.createQuiz(payload);
+        this.addedQuizzes.push(response.data);
+      } else {
+        const quizId = this.addedQuizzes[this.editIndex]._id;
+        const response = await api.putQuiz(quizId, payload);
+        this.addedQuizzes[this.editIndex] = response.data;
+        this.editIndex = -1;
       }
-    },
+      this.resetQuiz();
+    } catch (error) {
+          console.error("Full error:", error);
+      alert(`Error: ${error.response?.data?.message || error.message}`);
+    }
+  }
+},
     async editQuiz(index) {
       this.quiz = { ...this.addedQuizzes[index] };
       this.editIndex = index;
@@ -149,17 +164,17 @@ export default {
     },
     validateQuiz(quiz) {
       if (!quiz.scenario) {
-        alert("Please enter a scenario.");
-        return false;
-      }
+    alert("Please enter a scenario.");
+    return false;
+  }
 
       if (!quiz.title) {
         alert("Please quiz title.");
         return false;
       }
 
-      return true;
-    },
+  return true;
+},
     resetQuiz() {
       this.question = {
         scenario: "",
@@ -168,13 +183,13 @@ export default {
       this.editIndex = -1;
     },
     async fetchAddedQuizzes() {
-      try {
-        const response = await api.getQuizzes();
-        this.addedQuizzes = response.data;
-      } catch (error) {
+  try {
+    const response = await api.getQuizzes();
+    this.addedQuizzes = response.data;
+  } catch (error) {
         console.error("Error fetching added quizzes:", error);
-      }
-    },
+  }
+},
   },
   created() {
     this.fetchAddedQuizzes();
