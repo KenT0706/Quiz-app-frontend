@@ -1,5 +1,5 @@
 <template>
- <div class="min-vh-100 d-flex align-items-center" style="background-color: #EBF3F6;">
+  <div class="min-vh-100 d-flex align-items-center" style="background-color: #EBF3F6;">
     <div class="container">
       <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
@@ -91,10 +91,25 @@
                 </button>
               </div>
             </div>
+            <footer class="footer mt-auto py-3 bg-white border-top">
+      <div class="container">
+        <div class="row">
+          <div class="col text-start small text-muted">
+            Contact Us / Website: <a href="http://hr-training-consultancy.strikingly.com/" class="text-decoration-none">http://hr-training-consultancy.strikingly.com/</a><br>
+            Copyright @ 2025 HR Training Consultancy 201303134852 (002229121-W) [All Rights Reserved]
+          </div>
+          <div class="col text-end small text-muted">
+            Developed by Ken Teng
+          </div>
+        </div>
+      </div>
+    </footer>
           </div>
         </div>
       </div>
     </div>
+
+   
   </div>
 </template>
   
@@ -285,5 +300,19 @@ export default {
 .btn-primary:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 15px rgba(78, 115, 255, 0.4);
+}
+
+/* Add footer styling */
+.footer {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure main content doesn't overflow */
+main {
+  overflow: auto;
 }
 </style>
