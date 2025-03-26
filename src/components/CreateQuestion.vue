@@ -1,7 +1,6 @@
 <template>
   <div class="container mt-5">
     <div class="row">
-      <!-- Form for Adding/Editing a Question -->
       <div class="col-md-6">
         <div class="card">
           <div class="card-body">
@@ -9,7 +8,6 @@
               {{ editIndex === -1 ? "Add Quiz Question" : "Edit Quiz Question" }}
             </h3>
             <form @submit.prevent="addOrEditQuestion">
-              <!-- Time Limit (in minutes) -->
               <div class="form-group mb-3">
                 <label for="timeLimit">Time Limit (minutes)</label>
                 <input
@@ -19,7 +17,6 @@
                   required
                 />
               </div>
-              <!-- Question Text -->
               <div class="form-group mb-3">
                 <label>Question Text</label>
                 <textarea
@@ -29,7 +26,6 @@
                   rows="4"
                 ></textarea>
               </div>
-              <!-- Question Type Selector -->
               <div class="form-group mb-3">
                 <label for="questionType">Question Type</label>
                 <select class="form-control" v-model="question.questionType" required>
@@ -37,7 +33,6 @@
                   <option value="open-ended">Open Ended</option>
                 </select>
               </div>
-              <!-- Multiple Choice Section -->
               <div v-if="question.questionType === 'multiple-choice'">
                 <div
                   class="form-group mb-3"
@@ -100,7 +95,6 @@
         </div>
       </div>
 
-      <!-- List of Added Questions -->
       <div class="col-md-6">
         <div class="card">
           <div class="card-body">
@@ -152,22 +146,39 @@
         </div>
       </div>
 
-      <!-- Open-Ended Answers -->
       <div class="col-md-12 mt-4">
         <div class="card">
           <div class="card-body">
-            <h3 class="card-title">Open-Ended Answers</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="card-title mb-0">Open-Ended Answers</h3>
+              <button
+                v-if="isEditingOpenEnded"
+                @click="deleteAllAnswersForCurrentQuestion"
+                class="btn btn-danger btn-sm"
+              >
+                Delete All
+              </button>
+            </div>
             <div class="answer-grid">
               <div v-for="answer in openEndedAnswers" :key="answer._id" class="answer-box">
-  <h6>{{ answer.userId?.username || 'Anonymous' }}</h6>
-  <p class="mb-0">{{ answer.answerText }}</p>
-</div>
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6>{{ answer.userId?.username || 'Anonymous' }}</h6>
+                    <p class="mb-0">{{ answer.answerText }}</p>
+                  </div>
+                  <button
+                    class="btn btn-danger btn-sm"
+                    @click="deleteOpenEndedAnswer(answer._id)"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Attempt History -->
       <div class="col-md-12 mt-4">
         <div class="card">
           <div class="card-body">
@@ -195,7 +206,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -243,6 +253,13 @@ export default {
         this.question.timeLimit = parseInt(value) * 60;
       },
     },
+    isEditingOpenEnded() {
+      return this.editIndex !== -1 &&
+             this.addedQuestions[this.editIndex]?.questionType === 'open-ended';
+    },
+    currentEditingQuestionId() {
+      return this.isEditingOpenEnded ? this.addedQuestions[this.editIndex]._id : null;
+    }
   },
   methods: {
     async addOrEditQuestion() {
@@ -286,6 +303,33 @@ export default {
           console.error("Full Error:", error.response?.data);
           alert(`Error: ${error.response?.data?.message || error.message}`);
         }
+      }
+    },
+    async deleteAllAnswersForCurrentQuestion() {
+      if (!confirm('Delete all open-ended answers for this question?')) return;
+
+      try {
+        if (this.currentEditingQuestionId) {
+          await api.deleteAnswersByQuestionId(this.currentEditingQuestionId);
+          await this.fetchOpenEndedAnswers();
+          alert('Answers deleted successfully');
+        } else {
+          alert('No question is currently being edited.');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert(error.response?.data?.message || 'Failed to delete answers');
+      }
+    },
+    async deleteOpenEndedAnswer(answerId) {
+      if (!confirm('Are you sure you want to delete this answer?')) return;
+      try {
+        await api.deleteAnswer(answerId); // You might need to create this API call
+        await this.fetchOpenEndedAnswers(); // Refresh the list
+        alert('Answer deleted successfully');
+      } catch (error) {
+        console.error('Error deleting answer:', error);
+        alert(error.response?.data?.message || 'Failed to delete answer');
       }
     },
     validateQuestion() {
@@ -345,25 +389,25 @@ export default {
       }
     },
     async fetchOpenEndedAnswers() {
-  try {
-    const openEndedIds = this.addedQuestions
-      .filter(q => q.questionType === 'open-ended')
-      .map(q => q._id);
+      try {
+        const openEndedIds = this.addedQuestions
+          .filter(q => q.questionType === 'open-ended')
+          .map(q => q._id);
 
-    const allAnswers = await Promise.all(
-      openEndedIds.map(id =>
-        api.getAnswers(id).then(res => res.data).catch(error => {
-          console.error(`Error fetching answers for question ${id}:`, error);
-          return [];
-        })
-      )
-    );
+        const allAnswers = await Promise.all(
+          openEndedIds.map(id =>
+            api.getAnswers(id).then(res => res.data).catch(error => {
+              console.error(`Error fetching answers for question ${id}:`, error);
+              return [];
+            })
+          )
+        );
 
-    this.openEndedAnswers = allAnswers.flat();
-  } catch (error) {
-    console.error("Error fetching answers:", error);
-  }
-},
+        this.openEndedAnswers = allAnswers.flat();
+      } catch (error) {
+        console.error("Error fetching answers:", error);
+      }
+    },
     editQuestion(index) {
       this.question = { ...this.addedQuestions[index] };
       this.editIndex = index;
@@ -387,13 +431,13 @@ export default {
       }
     },
     async initializeData() {
-  await this.fetchAddedQuestions();
-  await this.fetchOpenEndedAnswers();
-},
-async refreshData() {
-  await this.fetchAddedQuestions();
-  await this.fetchOpenEndedAnswers();
-},
+      await this.fetchAddedQuestions();
+      await this.fetchOpenEndedAnswers();
+    },
+    async refreshData() {
+      await this.fetchAddedQuestions();
+      await this.fetchOpenEndedAnswers();
+    },
   },
   created() {
     this.fetchAddedQuestions();

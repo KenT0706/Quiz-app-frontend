@@ -93,5 +93,11 @@ export default {
   },
   getAnswers(questionId) {
     return api.get(`/answers/${questionId}`);
+  },
+  deleteAnswersByQuestionId(questionId) {
+    return api.delete(`/answers/question/${questionId}/delete`);
+  },
+  deleteAnswer(answerId) {
+    return api.delete(`/answers/${answerId}/delete`); // Add this line
   }
 };
