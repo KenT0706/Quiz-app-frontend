@@ -152,12 +152,12 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h3 class="card-title mb-0">Open-Ended Answers</h3>
               <button
-                v-if="isEditingOpenEnded"
-                @click="deleteAllAnswersForCurrentQuestion"
-                class="btn btn-danger btn-sm"
-              >
-                Delete All
-              </button>
+  v-if="openEndedAnswers.length > 0"
+  @click="deleteAllOpenEndedAnswers"
+  class="btn btn-danger btn-sm"
+>
+  Delete All
+</button>
             </div>
             <div class="answer-grid">
               <div v-for="answer in openEndedAnswers" :key="answer._id" class="answer-box">
@@ -182,7 +182,12 @@
       <div class="col-md-12 mt-4">
         <div class="card">
           <div class="card-body">
-            <h3 class="card-title">Attempt History</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="card-title">Attempt History</h3>
+              <button class="btn btn-danger btn-sm" @click="deleteAllAttemptHistory">
+                Delete History
+              </button>
+            </div>
             <table class="table table-striped">
               <thead>
                 <tr>
@@ -305,22 +310,27 @@ export default {
         }
       }
     },
-    async deleteAllAnswersForCurrentQuestion() {
-      if (!confirm('Delete all open-ended answers for this question?')) return;
+    async deleteAllOpenEndedAnswers() {
+  if (!confirm('Delete all open-ended answers?')) return;
+  
+  try {
+    const openEndedQuestionIds = this.addedQuestions
+      .filter(q => q.questionType === 'open-ended')
+      .map(q => q._id);
 
-      try {
-        if (this.currentEditingQuestionId) {
-          await api.deleteAnswersByQuestionId(this.currentEditingQuestionId);
-          await this.fetchOpenEndedAnswers();
-          alert('Answers deleted successfully');
-        } else {
-          alert('No question is currently being edited.');
-        }
-      } catch (error) {
-        console.error('Delete error:', error);
-        alert(error.response?.data?.message || 'Failed to delete answers');
-      }
-    },
+    await Promise.all(
+      openEndedQuestionIds.map(id => 
+        api.deleteAnswersByQuestionId(id)
+      )
+    );
+    
+    await this.fetchOpenEndedAnswers();
+    alert('All open-ended answers deleted successfully');
+  } catch (error) {
+    console.error('Delete error:', error);
+    alert(error.response?.data?.message || 'Failed to delete answers');
+  }
+},
     async deleteOpenEndedAnswer(answerId) {
       if (!confirm('Are you sure you want to delete this answer?')) return;
       try {
@@ -330,6 +340,18 @@ export default {
       } catch (error) {
         console.error('Error deleting answer:', error);
         alert(error.response?.data?.message || 'Failed to delete answer');
+      }
+    },
+    async deleteAllAttemptHistory() {
+      if (confirm("Are you sure you want to delete all attempt history? This action cannot be undone.")) {
+        try {
+          await api.deleteQuizResults(this.quizId);
+          this.results = []; // Clear the local results array
+          alert("Attempt history deleted successfully.");
+        } catch (error) {
+          console.error("Error deleting attempt history:", error);
+          alert(error.response?.data?.message || "Failed to delete attempt history.");
+        }
       }
     },
     validateQuestion() {
@@ -379,15 +401,25 @@ export default {
       };
       this.editIndex = -1;
     },
-    async fetchAddedQuestions() {
-      try {
-        const response = await api.getQuestions(this.quizId);
-        this.addedQuestions = response.data.questions;
-        this.results = response.data.results;
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      }
-    },
+    async fetchResults() {
+    try {
+      const response = await api.getQuizResults(this.quiz.quizPin); // You'll need to pass/store quizPin
+      this.results = response.data;
+    } catch (error) {
+      console.error("Error fetching results:", error);
+    }
+  },
+
+  // Update your existing fetchAddedQuestions
+  async fetchAddedQuestions() {
+    try {
+      const response = await api.getQuestions(this.quizId);
+      this.addedQuestions = response.data.questions;
+      // Remove the results assignment from here
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+    }
+  },
     async fetchOpenEndedAnswers() {
       try {
         const openEndedIds = this.addedQuestions
@@ -437,6 +469,7 @@ export default {
     async refreshData() {
       await this.fetchAddedQuestions();
       await this.fetchOpenEndedAnswers();
+      await this.fetchResults();
     },
   },
   created() {

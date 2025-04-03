@@ -68,6 +68,9 @@
                     >
                       Delete
                     </button>
+                    <button class="btn btn-info btn-sm" @click="duplicateQuiz(index)">
+    Duplicate
+  </button>
                   </div>
                 </div>
               </li>
@@ -143,6 +146,17 @@ export default {
     //     alert("Error adding/editing the question. Please try again.");
     //   }
     // },
+    async duplicateQuiz(index) {
+  const quizId = this.addedQuizzes[index]._id;
+  try {
+    const response = await api.duplicateQuiz(quizId);
+    await this.fetchAddedQuizzes();
+    alert('Quiz duplicated successfully');
+  } catch (error) {
+    console.error('Duplication error:', error);
+    alert(error.response?.data?.message || 'Failed to duplicate quiz');
+  }
+},
     async showDeleteConfirmation(index) {
       this.deleteIndex = index;
       if (window.confirm("Are you sure you want to delete this quiz?")) {

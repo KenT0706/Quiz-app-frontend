@@ -92,18 +92,18 @@
               </div>
             </div>
             <footer class="footer mt-auto py-3 bg-white border-top">
-      <div class="container">
-        <div class="row">
-          <div class="col text-start small text-muted">
-            Contact Us / Website: <a href="http://hr-training-consultancy.strikingly.com/" class="text-decoration-none">http://hr-training-consultancy.strikingly.com/</a><br>
-            Copyright @ 2025 HR Training Consultancy 201303134852 (002229121-W) [All Rights Reserved]
-          </div>
-          <div class="col text-end small text-muted">
-            Developed by Ken Teng
-          </div>
-        </div>
+  <div class="container">
+    <div class="row">
+      <div class="col text-start small text-muted">
+        Contact Us / Website: <a href="http://hr-training-consultancy.strikingly.com/" class="text-decoration-none">http://hr-training-consultancy.strikingly.com/</a><br>
+        Copyright @ 2025 HR Training Consultancy 201303134852 [All Rights Reserved]
       </div>
-    </footer>
+      <div class="col text-end small text-muted">
+        Developed by <b>Ken Teng</b>
+      </div>
+    </div>
+  </div>
+</footer>
           </div>
         </div>
       </div>

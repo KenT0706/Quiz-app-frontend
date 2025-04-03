@@ -99,5 +99,11 @@ export default {
   },
   deleteAnswer(answerId) {
     return api.delete(`/answers/${answerId}/delete`); // Add this line
+  },
+  deleteQuizResults(quizId) {
+    return api.delete(`quiz/${quizId}/results/delete`);
+  },
+  duplicateQuiz(quizId) {
+    return api.post(`quiz/${quizId}/duplicate`);
   }
 };
