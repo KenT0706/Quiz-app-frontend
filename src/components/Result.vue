@@ -181,7 +181,10 @@ export default {
       if (index === 1) return '2nd';
       if (index === 2) return '3rd';
       return '';
-    }
+    },
+    imagePath(avatarId) {
+  return this.avatars.find(a => a.id === avatarId)?.filename || avatar1;
+}
   },
 };
 </script>

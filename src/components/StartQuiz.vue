@@ -187,43 +187,66 @@ export default {
     },
     async submitQuiz() {
   try {
-    const answers = this.questions.map((q, index) => ({
-      questionId: q._id,
-      answerText: this.selectedAnswers[index] || "",
-      answerTime: this.answerTimes[index] || 0
-    }));
+    // Validate all required data first
+    if (!this.quiz?._id) {
+      throw new Error('Invalid quiz data');
+    }
 
-    // Submit for scoring
-    const response = await api.submitQuiz(this.quiz._id, { answers });
+    // Submit answers for scoring
+    const scoreResponse = await api.submitQuiz(this.quiz._id, {
+      answers: this.questions.map((q, index) => ({
+        questionId: q._id,
+        answerText: this.selectedAnswers[index] || "",
+        answerTime: this.answerTimes[index] || 0
+      }))
+    });
 
-    // Save the result
+    // Save result
     await api.saveQuizResult(this.quiz._id, {
-      currentScore: response.data.score,
+      currentScore: scoreResponse.data.score,
       name: this.quizTakerName,
       avtId: this.avatarId
     });
 
-     // Submit open-ended answers
-     const openEndedAnswers = answers.filter((answer, index) => 
-      this.questions[index].questionType === 'open-ended' && 
-      answer.answerText.trim()
-    );
-    
-    // Submit each open-ended answer properly
-    for (const answer of openEndedAnswers) {
-      await api.submitAnswer({
-        quizPin: Number(this.quizPin), // Ensure numeric pin
-        questionId: answer.questionId,
-        answerText: answer.answerText
-      }).catch(error => {
-        console.error('Answer submission error:', error);
-      });
-    }
+    const userId = localStorage.getItem('userId');
 
-    this.score = response.data.score;
+    // Submit open-ended answers
+    const openEndedAnswers = this.questions
+      .map((q, index) => ({
+        questionId: q._id,
+        answerText: this.selectedAnswers[index] || "",
+        quizPin: Number(this.quizPin)
+      }))
+      .filter((a, i) => 
+        this.questions[i].questionType === 'open-ended' && 
+        a.answerText.trim().length > 0
+      );
+
+    const submissionResults = await Promise.allSettled(
+      openEndedAnswers.map(answer => 
+        api.submitAnswer(answer)
+          .then(res => {
+            console.log('Answer submitted:', answer.questionId, res.data);
+            return res;
+          })
+          .catch(err => {
+            console.error('Error submitting answer:', answer.questionId, err.response?.data || err.message);
+            throw err;
+          })
+      )
+    );
+
+    submissionResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error('Failed to submit answer for question:', openEndedAnswers[index].questionId);
+      }
+    });
+
+    this.score = scoreResponse.data.score;
     this.showResults = true;
   } catch (error) {
-    console.error("Error submitting answers:", error);
+    console.error("Submission error:", error);
+    alert(`Error submitting quiz: ${error.response?.data?.message || error.message}`);
   }
 },
     goToLeaderBoard() {

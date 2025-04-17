@@ -218,11 +218,38 @@
 <script>
 import api from "../api";
 import avatar1 from "@/assets/1.jpg";
-// Import additional avatars as needed
+import avatar2 from "@/assets/2.jpg";
+import avatar3 from "@/assets/3.jpg";
+import avatar4 from "@/assets/4.jpg";
+import avatar5 from "@/assets/5.jpg";
+import avatar6 from "@/assets/6.jpg";
+import avatar7 from "@/assets/7.jpg";
+import avatar8 from "@/assets/8.jpg";
+import avatar9 from "@/assets/9.jpg";
+import avatar10 from "@/assets/10.jpg";
+import avatar11 from "@/assets/11.jpg";
+import avatar12 from "@/assets/12.jpg";
+import avatar13 from "@/assets/13.jpg";
+import avatar14 from "@/assets/14.jpg";
+import avatar15 from "@/assets/15.jpg";
+import avatar16 from "@/assets/16.jpg";
+import avatar17 from "@/assets/17.jpg";
+import avatar18 from "@/assets/18.jpg";
 
 export default {
   props: {
     quizId: String,
+  },
+  watch: {
+    // Add watcher for quizId changes
+    quizId: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal) {
+          this.initializeData();
+        }
+      }
+    }
   },
   data() {
     return {
@@ -246,7 +273,26 @@ export default {
       results: [],
       editIndex: -1,
       deleteIndex: -1,
-      avatars: [avatar1 /*, add other avatars here */],
+      avatars: [
+      { id: 1, filename: avatar1 },
+        { id: 2, filename: avatar2 },
+        { id: 3, filename: avatar3 },
+        { id: 4, filename: avatar4 },
+        { id: 5, filename: avatar5 },
+        { id: 6, filename: avatar6 },
+        { id: 7, filename: avatar7 },
+        { id: 8, filename: avatar8 },
+        { id: 9, filename: avatar9 },
+        { id: 10, filename: avatar10 },
+        { id: 11, filename: avatar11 },
+        { id: 12, filename: avatar12 },
+        { id: 13, filename: avatar13 },
+        { id: 14, filename: avatar14 },
+        { id: 15, filename: avatar15 },
+        { id: 16, filename: avatar16 },
+        { id: 17, filename: avatar17 },
+        { id: 18, filename: avatar18 }],
+      quiz: null, // Add this to store quiz data
     };
   },
   computed: {
@@ -401,45 +447,62 @@ export default {
       };
       this.editIndex = -1;
     },
-    async fetchResults() {
-    try {
-      const response = await api.getQuizResults(this.quiz.quizPin); // You'll need to pass/store quizPin
-      this.results = response.data;
-    } catch (error) {
-      console.error("Error fetching results:", error);
-    }
-  },
-
-  // Update your existing fetchAddedQuestions
-  async fetchAddedQuestions() {
-    try {
-      const response = await api.getQuestions(this.quizId);
-      this.addedQuestions = response.data.questions;
-      // Remove the results assignment from here
-    } catch (error) {
-      console.error("Error fetching questions:", error);
-    }
-  },
-    async fetchOpenEndedAnswers() {
+  // CreateQuestion.vue - Update fetchResults method
+  async fetchResults() {
       try {
-        const openEndedIds = this.addedQuestions
-          .filter(q => q.questionType === 'open-ended')
-          .map(q => q._id);
-
-        const allAnswers = await Promise.all(
-          openEndedIds.map(id =>
-            api.getAnswers(id).then(res => res.data).catch(error => {
-              console.error(`Error fetching answers for question ${id}:`, error);
-              return [];
-            })
-          )
-        );
-
-        this.openEndedAnswers = allAnswers.flat();
+        if (this.quiz?.quizPin) {
+          // Remove .toString() to keep as Number
+          const response = await api.getQuizResults(this.quiz.quizPin);
+          this.results = response.data.results || [];
+        }
       } catch (error) {
-        console.error("Error fetching answers:", error);
+        console.error("Error fetching results:", error);
       }
     },
+
+    async fetchAddedQuestions() {
+      try {
+        const response = await api.getQuestions(this.quizId);
+        if (response.data) {
+          this.addedQuestions = response.data.questions || [];
+          this.quiz = response.data.quiz || null;
+          
+          if (!this.quiz) {
+            await this.fetchQuizData();
+          }
+          // Ensure we have quizPin before fetching results
+          if (this.quiz?.quizPin) {
+            await this.fetchResults();
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      }
+    },
+
+async fetchQuizData() {
+  try {
+    const response = await api.getQuiz(this.quizId); // You'll need to add this API method
+    this.quiz = response.data;
+  } catch (error) {
+    console.error("Error fetching quiz data:", error);
+  }
+},
+async fetchOpenEndedAnswers() {
+    try {
+        const openEndedIds = this.addedQuestions
+            .filter(q => q.questionType === 'open-ended')
+            .map(q => q._id);
+        const answers = await Promise.all(
+            openEndedIds.map(id =>
+                api.getAnswers(id).then(res => res.data)
+            )
+        );
+        this.openEndedAnswers = answers.flat().filter(a => a.answerText.trim());
+    } catch (error) {
+        console.error("Error fetching answers:", error);
+    }
+},
     editQuestion(index) {
       this.question = { ...this.addedQuestions[index] };
       this.editIndex = index;
@@ -463,19 +526,31 @@ export default {
       }
     },
     async initializeData() {
-      await this.fetchAddedQuestions();
-      await this.fetchOpenEndedAnswers();
+      try {
+        await this.fetchAddedQuestions();
+        await this.fetchOpenEndedAnswers();
+        await this.fetchResults();
+      } catch (error) {
+        console.error("Initialization error:", error);
+      }
     },
     async refreshData() {
-      await this.fetchAddedQuestions();
-      await this.fetchOpenEndedAnswers();
-      await this.fetchResults();
-    },
+  try {
+    await this.fetchAddedQuestions();
+    
+    if (!this.quiz) {
+      console.error("Quiz data still not available after fetchAddedQuestions");
+      return;
+    }
+    
+    await this.fetchResults();
+    await this.fetchOpenEndedAnswers();
+  } catch (error) {
+    console.error("Error refreshing data:", error);
+  }
+},
   },
   created() {
-    this.fetchAddedQuestions();
-    this.fetchOpenEndedAnswers();
-    this.refreshData();
     this.initializeData();
     this.polling = setInterval(this.refreshData, 10000);
   },
