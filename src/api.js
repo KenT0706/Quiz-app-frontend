@@ -3,8 +3,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // baseURL: 'https://quiz-app-backend-blue.vercel.app',
-  baseURL: 'http://localhost:3000/',
+  baseURL: 'https://quiz-app-backend-blue.vercel.app',
+  // baseURL: 'http://localhost:3000/',
 });
 
 api.interceptors.request.use(
