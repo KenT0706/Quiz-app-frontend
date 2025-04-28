@@ -189,25 +189,21 @@
               </button>
             </div>
             <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Avatar</th>
-                  <th>Name</th>
-                  <th>Score</th>
-                  <th>Attempt Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="r in results" :key="r._id">
-                  <td>
-                    <img width="50" :src="avatars[r.avatarId - 1]" alt="Avatar" />
-                  </td>
-                  <td>{{ r.name }}</td>
-                  <td>{{ r.result }}</td>
-                  <td>{{ new Date(r.createdAt).toLocaleString() }}</td>
-                </tr>
-              </tbody>
-            </table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Score</th>
+      <th>Attempt Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr v-for="r in results" :key="r._id">
+      <td>{{ r.name }}</td>
+      <td>{{ r.result }}</td>
+      <td>{{ new Date(r.createdAt).toLocaleString() }}</td>
+    </tr>
+  </tbody>
+</table>
           </div>
         </div>
       </div>
@@ -217,24 +213,6 @@
 
 <script>
 import api from "../api";
-import avatar1 from "@/assets/1.jpg";
-import avatar2 from "@/assets/2.jpg";
-import avatar3 from "@/assets/3.jpg";
-import avatar4 from "@/assets/4.jpg";
-import avatar5 from "@/assets/5.jpg";
-import avatar6 from "@/assets/6.jpg";
-import avatar7 from "@/assets/7.jpg";
-import avatar8 from "@/assets/8.jpg";
-import avatar9 from "@/assets/9.jpg";
-import avatar10 from "@/assets/10.jpg";
-import avatar11 from "@/assets/11.jpg";
-import avatar12 from "@/assets/12.jpg";
-import avatar13 from "@/assets/13.jpg";
-import avatar14 from "@/assets/14.jpg";
-import avatar15 from "@/assets/15.jpg";
-import avatar16 from "@/assets/16.jpg";
-import avatar17 from "@/assets/17.jpg";
-import avatar18 from "@/assets/18.jpg";
 
 export default {
   props: {
@@ -273,25 +251,6 @@ export default {
       results: [],
       editIndex: -1,
       deleteIndex: -1,
-      avatars: [
-      { id: 1, filename: avatar1 },
-        { id: 2, filename: avatar2 },
-        { id: 3, filename: avatar3 },
-        { id: 4, filename: avatar4 },
-        { id: 5, filename: avatar5 },
-        { id: 6, filename: avatar6 },
-        { id: 7, filename: avatar7 },
-        { id: 8, filename: avatar8 },
-        { id: 9, filename: avatar9 },
-        { id: 10, filename: avatar10 },
-        { id: 11, filename: avatar11 },
-        { id: 12, filename: avatar12 },
-        { id: 13, filename: avatar13 },
-        { id: 14, filename: avatar14 },
-        { id: 15, filename: avatar15 },
-        { id: 16, filename: avatar16 },
-        { id: 17, filename: avatar17 },
-        { id: 18, filename: avatar18 }],
       quiz: null, // Add this to store quiz data
     };
   },

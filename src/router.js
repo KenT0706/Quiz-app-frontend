@@ -35,7 +35,7 @@ const routes = [
   },
   { path: "/", component: AttendQuiz },
   {
-    path: "/start-quiz/:quizPin/:quizTakerName/:avatarId",
+    path: "/start-quiz/:quizPin/:quizTakerName",
     name: "StartQuiz",
     component: StartQuiz,
     props: true

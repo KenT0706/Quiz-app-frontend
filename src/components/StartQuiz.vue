@@ -92,8 +92,7 @@ import api from "../api";
 export default {
   props: {
     quizPin: String,
-    quizTakerName: String,
-    avatarId: String
+    quizTakerName: String
   },
   data() {
     return {
@@ -203,10 +202,9 @@ export default {
 
     // Save result
     await api.saveQuizResult(this.quiz._id, {
-      currentScore: scoreResponse.data.score,
-      name: this.quizTakerName,
-      avtId: this.avatarId
-    });
+  currentScore: scoreResponse.data.score,
+  name: this.quizTakerName
+});
 
     const userId = localStorage.getItem('userId');
 
