@@ -1,4 +1,4 @@
-
+//app.vue
 
 <template>
   <navbar :username="username" :key="username"></navbar>

@@ -58,7 +58,7 @@
           <!-- Open-Ended Question -->
           <div v-else>
             <textarea class="form-control" v-model="selectedAnswers[currentQuestionIndex]"
-              placeholder="Enter your answer (max 200 words)" rows="4" maxlength="500"></textarea>
+              placeholder="Enter your answer (max 500 words)" rows="4" maxlength="500"></textarea>
           </div>
         </div>
       </div>

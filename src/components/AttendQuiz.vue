@@ -63,6 +63,17 @@
                     v-model="enteredQuizTakerName"
                     @keyup.enter="checkQuiz"
                   >
+                    <button 
+                    class="btn btn-outline-secondary" 
+                    type="button" 
+                    @click="setAnonymous"
+                    :class="{ 'btn-secondary text-white': enteredQuizTakerName === 'Anonymous' }"
+                  >
+                    Anonymous
+                  </button>
+                </div>
+                <div class="form-text">
+                  Enter your name or click "Anonymous" to remain anonymous
                 </div>
                 <div v-if="errors.enteredQuizTakerName" class="text-danger small mt-2">
                   <i class="fas fa-exclamation-circle me-2"></i>{{ errors.enteredQuizTakerName }}
@@ -126,6 +137,9 @@ export default {
     };
   },
   methods: {
+   setAnonymous() {
+      this.enteredQuizTakerName = 'Anonymous';
+    },
     async checkQuiz() {
       // Clear previous errors
       this.errors = {
