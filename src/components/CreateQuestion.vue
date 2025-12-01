@@ -1,3 +1,4 @@
+//src/CreateQuestion.vue
 <template>
   <div class="container mt-5">
     <div class="row">
@@ -159,22 +160,27 @@
   Delete All
 </button>
             </div>
-            <div class="answer-grid">
-              <div v-for="answer in openEndedAnswers" :key="answer._id" class="answer-box">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6>{{ answer.userId?.username || 'Anonymous' }}</h6>
-                    <p class="mb-0">{{ answer.answerText }}</p>
-                  </div>
-                  <button
-                    class="btn btn-danger btn-sm"
-                    @click="deleteOpenEndedAnswer(answer._id)"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
+           <div class="answer-grid">
+  <div v-for="answer in openEndedAnswers" :key="answer._id" class="answer-box">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <!-- Use displayName instead of userId?.username -->
+        <h6>{{ answer.displayName || answer.userName || answer.userId?.username || 'Anonymous' }}</h6>
+        <p class="mb-0">{{ answer.answerText }}</p>
+        <small class="text-muted">
+          Quiz Pin: {{ answer.quizPin }}
+          <span v-if="answer.userName"> | From Answer: {{ answer.userName }}</span>
+        </small>
+      </div>
+      <button
+        class="btn btn-danger btn-sm"
+        @click="deleteOpenEndedAnswer(answer._id)"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
           </div>
         </div>
       </div>
@@ -448,19 +454,68 @@ async fetchQuizData() {
   }
 },
 async fetchOpenEndedAnswers() {
-    try {
-        const openEndedIds = this.addedQuestions
-            .filter(q => q.questionType === 'open-ended')
-            .map(q => q._id);
-        const answers = await Promise.all(
-            openEndedIds.map(id =>
-                api.getAnswers(id).then(res => res.data)
-            )
-        );
-        this.openEndedAnswers = answers.flat().filter(a => a.answerText.trim());
-    } catch (error) {
-        console.error("Error fetching answers:", error);
-    }
+  try {
+    const openEndedIds = this.addedQuestions
+      .filter(q => q.questionType === 'open-ended')
+      .map(q => q._id);
+    
+    const answersPromises = openEndedIds.map(id =>
+      api.getAnswers(id).then(res => res.data)
+    );
+    
+    const answersArrays = await Promise.all(answersPromises);
+    const allAnswers = answersArrays.flat().filter(a => a.answerText.trim());
+    
+    // Create a map of results by quizPin and name
+    const resultsByQuizPin = {};
+    this.results.forEach(result => {
+      if (!resultsByQuizPin[result.quizPin]) {
+        resultsByQuizPin[result.quizPin] = [];
+      }
+      resultsByQuizPin[result.quizPin].push(result);
+    });
+    
+    // Match each answer with possible results
+    this.openEndedAnswers = allAnswers.map(answer => {
+      const possibleResults = resultsByQuizPin[answer.quizPin] || [];
+      
+      // Find the closest result by timestamp
+      let closestResult = null;
+      let minTimeDiff = Infinity;
+      
+      const answerTime = new Date(answer.createdAt).getTime();
+      
+      possibleResults.forEach(result => {
+        const resultTime = new Date(result.createdAt).getTime();
+        const timeDiff = Math.abs(answerTime - resultTime);
+        
+        // If within 2 minutes (120000 ms), consider it a match
+        if (timeDiff < 120000 && timeDiff < minTimeDiff) {
+          minTimeDiff = timeDiff;
+          closestResult = result;
+        }
+      });
+      
+      // If no close match found, take the first result with same quizPin
+      if (!closestResult && possibleResults.length > 0) {
+        closestResult = possibleResults[0];
+      }
+      
+      return {
+        ...answer,
+        displayName: answer.userName || 
+                    (closestResult ? closestResult.name : 'Anonymous'),
+        matchedResult: closestResult,
+        possibleMatches: possibleResults.length,
+        timeDiff: closestResult ? minTimeDiff : 'No match'
+      };
+    });
+    
+    console.log('Matched answers with results:', this.openEndedAnswers);
+    
+  } catch (error) {
+    console.error("Error fetching answers:", error);
+  }
 },
     editQuestion(index) {
       this.question = { ...this.addedQuestions[index] };

@@ -1,3 +1,4 @@
+//src/StartQuiz.vue
 <template>
   <div class="container mt-5">
     <div v-if="quiz" class="row">
@@ -200,35 +201,37 @@ export default {
       }))
     });
 
-    // Save result
+   // Save result
     await api.saveQuizResult(this.quiz._id, {
-  currentScore: scoreResponse.data.score,
-  name: this.quizTakerName
-});
+      currentScore: scoreResponse.data.score,
+      name: this.quizTakerName
+    });
 
-    const userId = localStorage.getItem('userId');
-
-    // Submit open-ended answers
+    // Submit open-ended answers WITH THE USER'S NAME
     const openEndedAnswers = this.questions
       .map((q, index) => ({
         questionId: q._id,
         answerText: this.selectedAnswers[index] || "",
-        quizPin: Number(this.quizPin)
+        quizPin: Number(this.quizPin),
+        userName: this.quizTakerName // ← ADD THIS LINE
       }))
       .filter((a, i) => 
         this.questions[i].questionType === 'open-ended' && 
         a.answerText.trim().length > 0
       );
 
+    console.log('Submitting open-ended answers with name:', this.quizTakerName);
+    console.log('Open-ended answers:', openEndedAnswers);
+
     const submissionResults = await Promise.allSettled(
       openEndedAnswers.map(answer => 
         api.submitAnswer(answer)
           .then(res => {
-            console.log('Answer submitted:', answer.questionId, res.data);
+            console.log('Answer submitted with name:', answer.userName, res.data);
             return res;
           })
           .catch(err => {
-            console.error('Error submitting answer:', answer.questionId, err.response?.data || err.message);
+            console.error('Error submitting answer:', err.response?.data || err.message);
             throw err;
           })
       )

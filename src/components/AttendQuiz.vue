@@ -1,3 +1,4 @@
+//src/AttendQuiz.vue
 <template>
   <div class="min-vh-100 d-flex align-items-center" style="background-color: #EBF3F6;">
     <div class="container">
