@@ -102,7 +102,7 @@
                 v-for="folder in folders"
                 :key="folder._id"
                 class="badge bg-light text-dark me-1 mb-1 cursor-pointer"
-                :class="{ 'bg-primary text-white': currentFolder === folder._id }"
+                :class="{ 'bg-primary text-white': getFolderId(folder._id) === currentFolder }"
                 @click="setCurrentFolder(folder._id)"
               >
                 {{ folder.name }} ({{ folder.quizzes ? folder.quizzes.length : 0 }})
@@ -140,7 +140,7 @@
                     <select 
                       class="form-select form-select-sm" 
                       @change="moveQuiz(q._id, $event.target.value)"
-                      :value="q.folder || ''"
+                      :value="getFolderIdFromQuiz(q) || ''"
                     >
                       <option value="">Move to...</option>
                       <option v-for="folder in folders" :key="folder._id" :value="folder._id">
@@ -181,7 +181,8 @@ export default {
       quiz: {
         scenario: "",
         title: "",
-        folder: ""
+        folder: "",
+        isAuthenticated: false
       },
       addedQuizzes: [],
       folders: [],
@@ -191,16 +192,56 @@ export default {
       currentFolder: null
     };
   },
+  async mounted() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.isAuthenticated = true;
+      try {
+        await this.fetchFolders();
+        await this.fetchAddedQuizzes();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        if (error.response?.status === 401) {
+          localStorage.clear();
+          this.$router.push('/login');
+        }
+      }
+    } else {
+      this.$router.push('/login');
+    }
+  },
   computed: {
     filteredQuizzes() {
       if (this.currentFolder === null) {
         return this.addedQuizzes;
       }
-      return this.addedQuizzes.filter(quiz => quiz.folder === this.currentFolder);
+      
+      return this.addedQuizzes.filter(quiz => {
+        // Get the folder ID from the quiz (could be object or string)
+        const folderId = this.getFolderIdFromQuiz(quiz);
+        return folderId === this.currentFolder;
+      });
     }
   },
   methods: {
-    // Add all the missing methods
+    // Helper methods to handle folder data consistently
+    getFolderId(folderInput) {
+      // Handle both folder object or folder ID string
+      if (!folderInput) return null;
+      return folderInput._id || folderInput;
+    },
+    
+    getFolderIdFromQuiz(quiz) {
+      // Extract folder ID from a quiz
+      return this.getFolderId(quiz.folder);
+    },
+    
+    getFolderObject(folderId) {
+      // Find folder object by ID
+      return this.folders.find(f => f._id === folderId);
+    },
+
+    // Main methods
     async fetchAddedQuizzes() {
       try {
         const response = await api.getQuizzes();
@@ -234,7 +275,12 @@ export default {
     },
 
     editQuiz(index) {
-      this.quiz = { ...this.addedQuizzes[index] };
+      const quiz = this.addedQuizzes[index];
+      this.quiz = {
+        scenario: quiz.scenario,
+        title: quiz.title,
+        folder: this.getFolderIdFromQuiz(quiz) || ""
+      };
       this.editIndex = index;
     },
 
@@ -271,7 +317,6 @@ export default {
       }
     },
 
-    // Folder methods (already present but need to be kept)
     async addOrEditQuiz() {
       if (this.validateQuiz(this.quiz)) {
         try {
@@ -291,8 +336,8 @@ export default {
             this.editIndex = -1;
           }
           this.resetQuiz();
-          this.fetchFolders(); // Refresh folders to update counts
-          this.fetchAddedQuizzes(); // Refresh quizzes list
+          await this.fetchFolders();
+          await this.fetchAddedQuizzes();
         } catch (error) {
           console.error("Full error:", error);
           alert(`Error: ${error.response?.data?.message || error.message}`);
@@ -306,30 +351,27 @@ export default {
         this.folders = response.data;
       } catch (error) {
         console.error("Error fetching folders:", error);
+        if (error.response?.status === 401) {
+          localStorage.clear();
+          this.$router.push('/login');
+        }
       }
     },
 
     async createFolder() {
-  if (!this.newFolderName.trim()) {
-    alert("Please enter a folder name");
-    return;
-  }
-  try {
-    console.log('Creating folder with name:', this.newFolderName);
-    console.log('Token:', localStorage.getItem('token'));
-    
-    const response = await api.createFolder({ name: this.newFolderName });
-    console.log('Folder creation response:', response);
-    
-    this.newFolderName = "";
-    this.fetchFolders();
-  } catch (error) {
-    console.error("Error creating folder:", error);
-    console.error("Error response:", error.response);
-    console.error("Error config:", error.config);
-    alert(error.response?.data?.message || "Failed to create folder");
-  }
-},
+      if (!this.newFolderName.trim()) {
+        alert("Please enter a folder name");
+        return;
+      }
+      try {
+        const response = await api.createFolder({ name: this.newFolderName });
+        this.newFolderName = "";
+        await this.fetchFolders();
+      } catch (error) {
+        console.error("Error creating folder:", error);
+        alert(error.response?.data?.message || "Failed to create folder");
+      }
+    },
 
     async editFolder(folder) {
       const newName = prompt("Enter new folder name:", folder.name);
@@ -348,7 +390,7 @@ export default {
       if (confirm("Are you sure you want to delete this folder? Quizzes will be moved to 'No Folder'.")) {
         try {
           await api.deleteFolder(folderId);
-          this.fetchFolders();
+          await this.fetchFolders();
           // Reset current folder if it was deleted
           if (this.currentFolder === folderId) {
             this.currentFolder = null;
@@ -363,12 +405,21 @@ export default {
     async moveQuiz(quizId, folderId) {
       try {
         await api.moveQuizToFolder(folderId, { quizId });
+        
         // Update local state
         const quizIndex = this.addedQuizzes.findIndex(q => q._id === quizId);
         if (quizIndex !== -1) {
-          this.addedQuizzes[quizIndex].folder = folderId || null;
+          if (folderId) {
+            // Find the folder object from folders array
+            const folderObj = this.folders.find(f => f._id === folderId);
+            this.addedQuizzes[quizIndex].folder = folderObj || folderId;
+          } else {
+            this.addedQuizzes[quizIndex].folder = null;
+          }
         }
-        this.fetchFolders(); // Refresh folder counts
+        
+        await this.fetchFolders();
+        await this.fetchAddedQuizzes();
       } catch (error) {
         console.error("Error moving quiz:", error);
         alert(error.response?.data?.message || "Failed to move quiz");
@@ -379,15 +430,16 @@ export default {
       this.currentFolder = folderId;
     },
 
-    getFolderName(folderId) {
-      if (!folderId) return "No Folder";
+    getFolderName(folderInput) {
+      if (!folderInput) return "No Folder";
+      
+      // Get the folder ID first
+      const folderId = this.getFolderId(folderInput);
+      
+      // Find the folder object
       const folder = this.folders.find(f => f._id === folderId);
       return folder ? folder.name : "Unknown Folder";
     }
-  },
-  created() {
-    this.fetchAddedQuizzes();
-    this.fetchFolders();
   }
 };
 </script>
