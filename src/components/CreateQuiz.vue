@@ -1,4 +1,3 @@
-//CreateQuiz.vue
 <template>
   <div class="container mt-5">
     <div class="row">
@@ -67,7 +66,7 @@
               >
                 <div>
                   <strong>{{ folder.name }}</strong>
-                  <span class="badge bg-primary ms-2">{{ folder.quizzes ? folder.quizzes.length : 0 }} quizzes</span>
+                  <span class="badge bg-primary ms-2">{{ folderStats[folder._id] || 0 }} quizzes</span>
                 </div>
                 <div class="btn-group">
                   <button class="btn btn-warning btn-sm" @click="editFolder(folder)">
@@ -105,7 +104,7 @@
                 :class="{ 'bg-primary text-white': getFolderId(folder._id) === currentFolder }"
                 @click="setCurrentFolder(folder._id)"
               >
-                {{ folder.name }} ({{ folder.quizzes ? folder.quizzes.length : 0 }})
+                {{ folder.name }} ({{ folderStats[folder._id] || 0 }})
               </span>
             </div>
           </div>
@@ -221,6 +220,26 @@ export default {
         const folderId = this.getFolderIdFromQuiz(quiz);
         return folderId === this.currentFolder;
       });
+    },
+    
+    // Add this computed property to get accurate folder counts
+    folderStats() {
+      const stats = {};
+      
+      // Initialize all folders with 0 count
+      this.folders.forEach(folder => {
+        stats[folder._id] = 0;
+      });
+      
+      // Count quizzes in each folder
+      this.addedQuizzes.forEach(quiz => {
+        const folderId = this.getFolderIdFromQuiz(quiz);
+        if (folderId && stats[folderId] !== undefined) {
+          stats[folderId]++;
+        }
+      });
+      
+      return stats;
     }
   },
   methods: {
