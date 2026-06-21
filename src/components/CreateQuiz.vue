@@ -211,16 +211,12 @@ export default {
   },
   computed: {
     filteredQuizzes() {
-      if (this.currentFolder === null) {
-        return this.addedQuizzes;
-      }
-      
-      return this.addedQuizzes.filter(quiz => {
-        // Get the folder ID from the quiz (could be object or string)
-        const folderId = this.getFolderIdFromQuiz(quiz);
-        return folderId === this.currentFolder;
-      });
-    },
+  const quizzes = this.currentFolder === null 
+    ? this.addedQuizzes 
+    : this.addedQuizzes.filter(quiz => this.getFolderIdFromQuiz(quiz) === this.currentFolder);
+  
+  return [...quizzes].sort((a, b) => a.title.localeCompare(b.title));
+},
     
     // Add this computed property to get accurate folder counts
     folderStats() {
