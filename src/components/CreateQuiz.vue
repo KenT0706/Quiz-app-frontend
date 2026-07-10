@@ -148,20 +148,20 @@
                     </select>
                     <button
                       class="btn-sm btn btn-warning"
-                      @click="editQuiz(index)"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      class="btn-sm btn btn-danger"
-                      @click="showDeleteConfirmation(index)"
-                    >
-                      Delete
-                    </button>
-                    <button class="btn btn-info btn-sm" @click="duplicateQuiz(index)">
-                      Duplicate
-                    </button>
-                  </div>
+    @click="editQuiz(q._id)"          
+  >
+    Edit
+  </button>
+  <button
+    class="btn-sm btn btn-danger"
+    @click="showDeleteConfirmation(q._id)"   
+  >
+    Delete
+  </button>
+  <button class="btn btn-info btn-sm" @click="duplicateQuiz(q._id)">
+  Duplicate
+</button>
+</div>
                 </div>
               </li>
             </ul>
@@ -211,11 +211,11 @@ export default {
   },
   computed: {
     filteredQuizzes() {
-  const quizzes = this.currentFolder === null 
-    ? this.addedQuizzes 
+  const quizzes = this.currentFolder === null
+    ? this.addedQuizzes
     : this.addedQuizzes.filter(quiz => this.getFolderIdFromQuiz(quiz) === this.currentFolder);
-  
-  return [...quizzes].sort((a, b) => a.title.localeCompare(b.title));
+
+  return [...quizzes].sort((a, b) => a._id > b._id ? 1 : -1);
 },
     
     // Add this computed property to get accurate folder counts
@@ -289,48 +289,43 @@ export default {
       this.editIndex = -1;
     },
 
-    editQuiz(index) {
-      const quiz = this.addedQuizzes[index];
-      this.quiz = {
-        scenario: quiz.scenario,
-        title: quiz.title,
-        folder: this.getFolderIdFromQuiz(quiz) || ""
-      };
-      this.editIndex = index;
-    },
+   editQuiz(quizId) {
+  const quiz = this.addedQuizzes.find(q => q._id === quizId);
+  if (!quiz) return;
+  this.quiz = {
+    scenario: quiz.scenario,
+    title: quiz.title,
+    folder: this.getFolderIdFromQuiz(quiz) || ""
+  };
+  this.editIndex = this.addedQuizzes.findIndex(q => q._id === quizId);
+},
 
-    showDeleteConfirmation(index) {
-      this.deleteIndex = index;
-      if (window.confirm("Are you sure you want to delete this quiz?")) {
-        this.deleteQuiz();
-      } else {
-        this.deleteIndex = -1;
-      }
-    },
+showDeleteConfirmation(quizId) {
+  if (window.confirm("Are you sure you want to delete this quiz?")) {
+    this.deleteQuiz(quizId);
+  }
+},
 
-    async deleteQuiz() {
-      try {
-        const quizId = this.addedQuizzes[this.deleteIndex]._id;
-        await api.deleteQuiz(quizId);
-        this.addedQuizzes.splice(this.deleteIndex, 1);
-        this.deleteIndex = -1;
-      } catch (error) {
-        console.error(error);
-        alert("Error deleting the quiz. Please try again.");
-      }
-    },
+async deleteQuiz(quizId) {
+  try {
+    await api.deleteQuiz(quizId);
+    this.addedQuizzes = this.addedQuizzes.filter(q => q._id !== quizId);
+  } catch (error) {
+    console.error(error);
+    alert("Error deleting the quiz. Please try again.");
+  }
+},
 
-    async duplicateQuiz(index) {
-      const quizId = this.addedQuizzes[index]._id;
-      try {
-        const response = await api.duplicateQuiz(quizId);
-        await this.fetchAddedQuizzes();
-        alert('Quiz duplicated successfully');
-      } catch (error) {
-        console.error('Duplication error:', error);
-        alert(error.response?.data?.message || 'Failed to duplicate quiz');
-      }
-    },
+async duplicateQuiz(quizId) {
+  try {
+    await api.duplicateQuiz(quizId);
+    await this.fetchAddedQuizzes();
+    alert('Quiz duplicated successfully');
+  } catch (error) {
+    console.error('Duplication error:', error);
+    alert(error.response?.data?.message || 'Failed to duplicate quiz');
+  }
+},
 
     async addOrEditQuiz() {
       if (this.validateQuiz(this.quiz)) {
